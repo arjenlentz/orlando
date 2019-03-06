@@ -84,42 +84,20 @@ struct token_tree_item {
 	struct token_tree_item	*left,
 							*right;
 	// ---
-	struct tokenC_item		*tokenC;
+	struct tokenC_list_item	*tokenC_listp;
 };
 
 struct token_hash_item {
-	__uint16_t	*s;
+	char		*s;
 	__uint16_t	freq;
-}
+};
 
 
 struct token_hash_item *token_hash_table = NULL;
 __uint32_t num_tokens = 0;
-struct token_tree item *token_tree = NULL;
+struct token_tree_item *token_tree = NULL;
 
 struct tokenAB_item tokenAB_state;
-
-
-
-void init_tokendict (void)
-{
-	// allocate and init hash table
-	token_hash_table = (token_hash_item *) calloc(MAX_TOKENS, sizeof (struct token_hash_item));
-	num_tokens = 0;
-
-	token_tree = NULL;
-
-	init_tokenAB_state();
-}/*init_tokendict()*/
-
-
-
-void init_tokenAB_state (void)
-{
-	__uint16_t h = find_add_token("\002");	// STX (start of text)
-
-	tokenAB_state.tokenA = tokenAB_state.tokenB = h;
-}/*init_tokenAB_state()*/
 
 
 
@@ -181,7 +159,7 @@ __uint16_t find_add_token (const char *s)
 		// Not the one, we need to skip around some more...
 		// Note that we use the h var overflow to do our modulo.
 		h += MAX_TOKENS;
-	while (h != h2);
+	} while (h != h2);
 
 	// Dictionary full!
 	fprintf(stderr, "Dictionary full!\n");
@@ -190,11 +168,34 @@ __uint16_t find_add_token (const char *s)
 
 
 
+void init_tokenAB_state (void)
+{
+	__uint16_t h = find_add_token("\002");	// STX (start of text)
+
+	tokenAB_state.tokenA = tokenAB_state.tokenB = h;
+}/*init_tokenAB_state()*/
+
+
+
+void init_tokendict (void)
+{
+	// allocate and init hash table
+	token_hash_table = (struct token_hash_item *) calloc(MAX_TOKENS, sizeof (struct token_hash_item));
+	num_tokens = 0;
+
+	token_tree = NULL;
+
+	init_tokenAB_state();
+}/*init_tokendict()*/
+
+
+
 // Add a token into the token tree
 void add_token (const char *s)
 {
-	token_tree_item **ttipp;
+	struct token_tree_item **ttipp;
 	int h = find_add_token(s);
+	int i;
 
 	printf("[#%05u] %s\n", h, s);
 
@@ -205,29 +206,29 @@ void add_token (const char *s)
 			struct tokenC_list_item **tclipp;
 
 			// found token(A,B), now traverse the local token(C) item list
-			for (tclipp = &((*ttipp)->tokenC; *tclipp != NULL; tclipp = (*tclipp)->next) {
+			for (tclipp = &((*ttipp)->tokenC_listp); *tclipp != NULL; tclipp = &((*tclipp)->next)) {
 				if ((*tclipp)->tokenC == h) {
 					// Found! Increment freq.
 					if ((*tclipp)->freq == 0xffff) {
 						// We'd wrap! Need to adjust the relative frequencies first.
 						struct tokenC_list_item *tclip;
 
-						(*ttipp)->tokenAB.freq = 0;
-						for (tclip = (*ttipp)->tokenC; tclip; tclip = tclip->next) {
+						(*ttipp)->freq = 0;
+						for (tclip = (*ttipp)->tokenC_listp; tclip; tclip = tclip->next) {
 							// Halve everything!
 							// Yes, this means that some end up at 0, that's ok.
 							tclip->freq >>= 1;
 
-							(*ttipp)->tokenAB.freq += tclip->freq;	// tally into token(A,B) freq.
+							(*ttipp)->freq += tclip->freq;	// tally into token(A,B) freq.
 						}
 					}
 
-					(*tclipp)->tokenC.freq++;	// now we can increment token(C) freq.
-					(*ttipp)->tokenAB.freq++;	// increment token(A,B) freq as well, of course.
+					(*tclipp)->freq++;	// now we can increment token(C) freq.
+					(*ttipp)->freq++;	// increment token(A,B) freq as well, of course.
 
 					// shift state B -> A, C -> B.
 					tokenAB_state.tokenA = tokenAB_state.tokenB;
-					tokenAB_state.tokenB = (*tclipp)->tokenC.tokenC;
+					tokenAB_state.tokenB = h;
 
 					// Done!
 					return;
@@ -235,39 +236,39 @@ void add_token (const char *s)
 			}
 
 			// Not found, add new token(C)
-			(*tclipp)->tokenC = (struct tokenC_list_item *) calloc(1, sizeof (struct tokenC_list_item));
-			(*tclipp)->tokenC.tokenC = h;
-			(*tclipp)->tokenC.freq = 1;
+			(*tclipp)->next = (struct tokenC_list_item *) calloc(1, sizeof (struct tokenC_list_item));
+			(*tclipp)->next->tokenC = h;
+			(*tclipp)->next->freq = 1;
 
-			(*ttipp)->tokenAB.freq++;	// increment token(A,B) freq as well, of course.
+			(*ttipp)->freq++;	// increment token(A,B) freq as well, of course.
 
 			// shift state B -> A, C -> B.
 			tokenAB_state.tokenA = tokenAB_state.tokenB;
-			tokenAB_state.tokenB = (*tclipp)->tokenC.tokenC;
+			tokenAB_state.tokenB = h;
 
 			// Done!
 			return;
 		}
 		else {
 			// Not the one... we need to go left/right on our token(A,B) tree
-			ttipp = (i < 0) ? &((*ttipp)->left) : &((*ttipp)->right));
+			ttipp = (i < 0) ? &((*ttipp)->left) : &((*ttipp)->right);
 		}
 	}
 
 	// we need a new token(A,B) with our new token(C).
 	*ttipp = (struct token_tree_item *) calloc(1, sizeof (struct token_tree_item));
 
-`	(*ttipp)->tokenAB.tokenA = tokenAB_state.tokenA;
+	(*ttipp)->tokenAB.tokenA = tokenAB_state.tokenA;
 	(*ttipp)->tokenAB.tokenB = tokenAB_state.tokenB;
-	(*ttipp)->tokenAB.freq = 1;
+	(*ttipp)->freq = 1;
 
-	(*ttipp)->tokenC = (struct tokenC_list_item *) calloc(1, sizeof (struct tokenC_list_item));
-	(*ttipp)->tokenC.tokenC = h;
-	(*ttipp)->tokenC.freq = 1;
+	(*ttipp)->tokenC_listp = (struct tokenC_list_item *) calloc(1, sizeof (struct tokenC_list_item));
+	(*ttipp)->tokenC_listp->tokenC = h;
+	(*ttipp)->tokenC_listp->freq = 1;
 
 	// shift state B -> A, C -> B.
 	tokenAB_state.tokenA = tokenAB_state.tokenB;
-	tokenAB_state.tokenB = (*tclipp)->tokenC.tokenC;
+	tokenAB_state.tokenB = h;
 }/*add_token()*/
 
 
