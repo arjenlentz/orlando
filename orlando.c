@@ -24,8 +24,10 @@
 	Objective:
 	By learning from a specialised corpus of input text, we can start to
 	predict what the next word in a sentence (for this type of text) might be.
-	This is useful for word-prediction on mobile devices.
-	We could also create a sentence/text generator, see if it makes sense ;-)
+	This is useful for
+	 - word-prediction on mobile devices;
+	 - text generator, see if it makes sense;
+	 - assessing likelyhood of text having same author as other texts.
 
 	Why:
 	It's a neat exercise in linguistics, maths and learning algorithms.
@@ -44,8 +46,8 @@
 	Then, the RELATIVE frequency of ALL occurring token(C) after token(A,B)
 	allows us to derive the probability of ANY ONE token(C) following (A,B).
 
-	We could visualise this in 3D token matrix of size N^3, however,
-	let's not waste daft amounts of memory: it'll be a sparse matrix.
+	We could visualise this in a 3D token matrix of size N^3, however,
+	let's not waste daft amounts of memory: it'd turn out to be a sparse matrix.
 	So we set up a different structure. For now, we'll use a token hash array
 	+ a binary tree for the trigrams with the token(C) part in a linked list.
 
