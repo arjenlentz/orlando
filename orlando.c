@@ -206,7 +206,7 @@ void add_token (const char *s)
 			struct tokenC_list_item **tclipp;
 
 			// found token(A,B), now traverse the local token(C) item list
-			for (tclipp = &((*ttipp)->tokenC_listp); (*tclipp)->next != NULL; tclipp = &((*tclipp)->next)) {
+			for (tclipp = &((*ttipp)->tokenC_listp); *tclipp != NULL; tclipp = &((*tclipp)->next)) {
 				if ((*tclipp)->tokenC == h) {
 					// Found! Increment freq.
 
@@ -239,9 +239,9 @@ void add_token (const char *s)
 
 			// Not found, add new token(C)
 //printf("[#%05u-#%05u-#%05u] new(C)\n", tokenAB_state.tokenA, tokenAB_state.tokenB, h);
-			(*tclipp)->next = (struct tokenC_list_item *) calloc(1, sizeof (struct tokenC_list_item));
-			(*tclipp)->next->tokenC = h;
-			(*tclipp)->next->freq = 1;
+			(*tclipp) = (struct tokenC_list_item *) calloc(1, sizeof (struct tokenC_list_item));
+			(*tclipp)->tokenC = h;
+			(*tclipp)->freq = 1;
 
 			(*ttipp)->freq++;	// increment token(A,B) freq as well, of course.
 
