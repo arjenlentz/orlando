@@ -206,9 +206,10 @@ void add_token (const char *s)
 			struct tokenC_list_item **tclipp;
 
 			// found token(A,B), now traverse the local token(C) item list
-			for (tclipp = &((*ttipp)->tokenC_listp); *tclipp != NULL; tclipp = &((*tclipp)->next)) {
+			for (tclipp = &((*ttipp)->tokenC_listp); (*tclipp)->next != NULL; tclipp = &((*tclipp)->next)) {
 				if ((*tclipp)->tokenC == h) {
 					// Found! Increment freq.
+
 					if ((*tclipp)->freq == 0xffff) {
 						// We'd wrap! Need to adjust the relative frequencies first.
 						struct tokenC_list_item *tclip;
@@ -223,6 +224,7 @@ void add_token (const char *s)
 						}
 					}
 
+//printf("[#%05u-#%05u-#%05u]++\n", tokenAB_state.tokenA, tokenAB_state.tokenB, h);
 					(*tclipp)->freq++;	// now we can increment token(C) freq.
 					(*ttipp)->freq++;	// increment token(A,B) freq as well, of course.
 
@@ -236,6 +238,7 @@ void add_token (const char *s)
 			}
 
 			// Not found, add new token(C)
+//printf("[#%05u-#%05u-#%05u] new(C)\n", tokenAB_state.tokenA, tokenAB_state.tokenB, h);
 			(*tclipp)->next = (struct tokenC_list_item *) calloc(1, sizeof (struct tokenC_list_item));
 			(*tclipp)->next->tokenC = h;
 			(*tclipp)->next->freq = 1;
@@ -266,10 +269,36 @@ void add_token (const char *s)
 	(*ttipp)->tokenC_listp->tokenC = h;
 	(*ttipp)->tokenC_listp->freq = 1;
 
+//printf("[#%05u-#%05u-#%05u] new(A,B,C)\n", tokenAB_state.tokenA, tokenAB_state.tokenB, h);
 	// shift state B -> A, C -> B.
 	tokenAB_state.tokenA = tokenAB_state.tokenB;
 	tokenAB_state.tokenB = h;
 }/*add_token()*/
+
+
+// walk token tree, left first
+void dump_token_tree (struct token_tree_item *ttip)
+{
+	struct tokenC_list_item *ttlip;
+
+	do {
+		if (ttip->left != NULL)
+			dump_token_tree(ttip->left);
+
+		printf("[#%05u,#%05u] %s %s\n",
+			ttip->tokenAB.tokenA, ttip->tokenAB.tokenB,
+			token_hash_table[ttip->tokenAB.tokenA].s, token_hash_table[ttip->tokenAB.tokenB].s);
+
+		for (ttlip = ttip->tokenC_listp; ttlip != NULL; ttlip = ttlip->next) {
+			printf("  [%05u] (%3.2f) %s\n",
+				ttlip->tokenC,
+				(float) ttlip->freq / ttip->freq,
+				token_hash_table[ttlip->tokenC].s);
+		}
+
+		ttip = ttip->right;
+	} while (ttip != NULL);
+}/*dump_token_tree()*/
 
 
 
@@ -367,6 +396,15 @@ void main (int argc, char *argv[])
 		tokenise_stream(fp);
 		fclose(fp);
 	}
+
+printf("\nToken hash table:\n");
+for (i = 0; i < MAX_TOKENS; i++) {
+	if (token_hash_table[i].s != NULL) {
+		printf("[#%05u]:%u %s\n", i, token_hash_table[i].freq, token_hash_table[i].s);
+	}
+}
+
+dump_token_tree(token_tree);
 
 	exit(0);
 }
