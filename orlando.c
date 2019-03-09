@@ -60,6 +60,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
 
 
 
@@ -137,6 +138,8 @@ __uint16_t find_add_token (const char *s)
 			// Doesn't exist, so let's add it
 			token_hash_table[h].s = strdup(s);
 			token_hash_table[h].freq = 1;
+			num_tokens++;
+
 			return (h);
 		}
 		else if (!strcmp(token_hash_table[h].s, s)) {
@@ -160,7 +163,7 @@ __uint16_t find_add_token (const char *s)
 
 		// Not the one, we need to skip around some more...
 		// Note that we use the h var overflow to do our modulo.
-		h += MAX_TOKENS;
+		h += HASH_SKIP;
 	} while (h != h2);
 
 	// Dictionary full!
@@ -199,7 +202,7 @@ void add_token (const char *s)
 	int h = find_add_token(s);
 	int i;
 
-	printf("[#%05u] %s\n", h, s);
+//printf("[#%05u] %s\n", h, s);
 
 	// traverse token(A,B) tree
 	ttipp = &token_tree;
@@ -276,6 +279,7 @@ void add_token (const char *s)
 	tokenAB_state.tokenA = tokenAB_state.tokenB;
 	tokenAB_state.tokenB = h;
 }/*add_token()*/
+
 
 
 // walk token tree, left first
@@ -377,6 +381,74 @@ void tokenise_stream (FILE *fp)
 
 
 
+// Try and count the actual vocabulary of the author
+// We do this roughly by noting any token starting with a lowercase char
+int count_vocabulary (void)
+{
+	int i, vocab;
+
+	for (i = vocab = 0; i < MAX_TOKENS; i++) {
+		if (token_hash_table[i].s != NULL && islower(token_hash_table[i].s[0]))
+			vocab++;
+	}
+
+	return (vocab);
+}/*count_vocabulary()*/
+
+
+
+// Make up a story up to approx N words
+void ghostwrite (int num_words)
+{
+	struct token_tree_item *ttip;
+	struct tokenC_list_item *tclip;
+	__uint16_t etx_token = find_add_token("\003"), fullstop_token = find_add_token(".");
+	char *s;
+	int i, len;
+
+	srandom(time(NULL));
+	init_tokenAB_state();
+
+	do {
+		// traverse token(A,B) tree to find current state
+		for (ttip = token_tree; ttip != NULL && (i = memcmp(&(ttip->tokenAB), &tokenAB_state, sizeof (struct tokenAB_item))) != 0; ttip = (i < 0) ? ttip->left : ttip->right);
+
+		if (ttip == NULL) {
+			// Not found!? That should be impossible.
+			//printf("[#%05u-#%05u]\n", tokenAB_state.tokenA, tokenAB_state.tokenB);
+			fprintf(stderr, "Token(A,B) sequence not found in tree - this indicates a bug!\n");
+			exit (1);
+		}
+
+		// This is our chance to be artistic, choose our next word from the possibilities
+		i = random() % ttip->freq;
+
+		for (tclip = ttip->tokenC_listp; tclip != NULL && i >= tclip->freq; i -= tclip->freq, tclip = tclip->next);
+
+		if (tclip == NULL) {
+			// Shouldn't happen.
+			fprintf(stderr, "Skipped out of token(C) range - this indicates a bug!\n");
+			exit (1);
+		}
+
+		s = token_hash_table[tclip->tokenC].s;
+		len = strlen(s);
+		if (len > 1 || isdigit(s[0]) || s[0] >= 'A') 
+			printf(" ");
+		printf("%s", token_hash_table[tclip->tokenC].s);
+		if (len == 1 && strchr(".!?", s[0]))
+			printf("\n");
+
+		// shift state B -> A, C -> B.
+		tokenAB_state.tokenA = tokenAB_state.tokenB;
+		tokenAB_state.tokenB = tclip->tokenC;
+
+		// we keep going until the word limit, and then the end of a sentence.
+	} while (--num_words > 0 || (tclip->tokenC != etx_token && tclip->tokenC != fullstop_token));
+}/*ghostwrite()*/
+
+
+
 void main (int argc, char *argv[])
 {
 	int i;
@@ -399,6 +471,9 @@ void main (int argc, char *argv[])
 		fclose(fp);
 	}
 
+printf("num_tokens=%u  vocab=%d\n", num_tokens, count_vocabulary());
+
+#if 0
 printf("\nToken hash table:\n");
 for (i = 0; i < MAX_TOKENS; i++) {
 	if (token_hash_table[i].s != NULL) {
@@ -407,6 +482,10 @@ for (i = 0; i < MAX_TOKENS; i++) {
 }
 
 dump_token_tree(token_tree);
+#endif
+
+	ghostwrite(500);
+
 
 	exit(0);
 }
