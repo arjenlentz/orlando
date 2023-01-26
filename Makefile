@@ -2,5 +2,5 @@
 all: orlando
 
 orlando: orlando.c
-    gcc $< -o $@
+	gcc orlando.c -o orlando
 

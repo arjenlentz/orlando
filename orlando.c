@@ -18,44 +18,6 @@
 	https://www.gnu.org/licenses/agpl.txt
 */
 
-/*
-	What's are we doing today, Brain?
-
-	Objective:
-	By learning from a specialised corpus of input text, we can start to
-	predict what the next word in a sentence (for this type of text) might be.
-	This is useful for
-	 - word-prediction on mobile devices;
-	 - text generator, see if it makes sense;
-	 - assessing likelyhood of text having same author as other texts.
-
-	Why:
-	It's a neat exercise in linguistics, maths and learning algorithms.
-	Contrary to many learning systems which operate in an opaque manner,
-	the specialised approach here can be easily followed and verified.
-
-	How:
-	Words and punctuation are mapped to a dynamic token dictionary.
-	(we try to identify things like initials, email and URLs as tokens)
-	We create a frequency network based on trigrams (A,B,C) of tokens:
-	1. STX STX The
-	2. STX The quick
-	3. The quick brown
-	4. quick brown fox
-	In practice, for each token(A,B), we track the frequency of token(C).
-	Then, the RELATIVE frequency of ALL occurring token(C) after token(A,B)
-	allows us to derive the probability of ANY ONE token(C) following (A,B).
-
-	We could visualise this in a 3D token matrix of size N^3, however,
-	let's not waste daft amounts of memory: it'd turn out to be a sparse matrix.
-	So we set up a different structure. For now, we'll use a token hash array
-	+ a binary tree for the trigrams with the token(C) part in a linked list.
-
-	Ref:
-	https://en.wikipedia.org/wiki/Dynamic_Bayesian_network
-	https://en.wikipedia.org/wiki/Trigram
-	https://en.wikipedia.org/wiki/Sparse_matrix
-*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
