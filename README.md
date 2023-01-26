@@ -1,10 +1,12 @@
-Orlando - because, what's in a name...
+# Orlando
+
+Because, what's in a name...
 
 
 What's are we doing today, Brain?
 
 
-# Objective
+## Objective
 
 By learning from a specialised corpus of input text, we can start to
 predict what the next word in a sentence (for this type of text) might be.
@@ -15,20 +17,21 @@ This is useful for
 - assessing likelyhood of text having same author as other texts.
 
 
-# Why
+## Why
 
 It's a neat exercise in linguistics, maths and learning algorithms.
 Contrary to many learning systems which operate in an opaque manner,
 the specialised approach here can be easily followed and verified.
 
-And yes, modern AI/ML are "smarter", but Orlando's approach works
-better than the word prediction used in most mobile phones.
+And yes, modern AI are "smarter", but... Orlando's approach still works
+better than the word prediction used in most mobile phones!
 Einstein noted: "Make things as simple as possible, but no simpler."
 That ALSO means, don't make things more complicated than needed for its
 purpose! No need to connect to the cloud for SMS word prediction.
+And really, Orlando uses a simple ML model. ML is not magic.
 
 
-# How
+## How
 
 Words and punctuation are mapped to a dynamic token dictionary.
 (we try to identify things like initials, email and URLs as tokens)
@@ -44,19 +47,19 @@ Then, the RELATIVE frequency of ALL occurring token(C) after token(A,B)
 allows us to derive the probability of ANY ONE token(C) following (A,B).
 
 
-## Structure
+### Structure
 
 We could visualise our structure in a 3D token matrix of size N^3, however,
 let's not waste daft amounts of memory: it'd turn out to be a sparse matrix.
-So we set up a different structure: we'll use a token hash array
- + a binary tree for the trigrams with the token(C) part in a linked list.
+So we set up a different structure: we'll use a token hash array + a binary
+tree for the trigrams with the token(C) part in a linked list.
 A neat exercise in good old common C structures, really :)
 
 
 	-- Arjen Lentz, 2019
 
 
-## References
+### References
 
 - https://en.wikipedia.org/wiki/Dynamic_Bayesian_network
 - https://en.wikipedia.org/wiki/Trigram
